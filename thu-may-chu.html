@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thử máy chủ điểm danh (Giai đoạn 2)</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 16px; max-width: 760px; margin-inline: auto; line-height: 1.45; }
+  h1 { font-size: 1.25rem; margin: 0 0 8px; }
+  h3 { font-size: 1rem; margin: 18px 0 6px; }
+  .canhbao { background: #fff4e5; border: 1px solid #f0b86b; padding: 8px 10px; border-radius: 6px; font-size: .9rem; }
+  .loi { background: #fde2e2; border: 1px solid #e08a8a; padding: 8px 10px; border-radius: 6px; margin: 8px 0; }
+  button { font-size: 1rem; padding: 10px 14px; margin: 4px 6px 4px 0; border-radius: 6px; border: 1px solid #888; background: #f3f3f3; }
+  button:disabled { opacity: .45; }
+  textarea { width: 100%; box-sizing: border-box; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
+  pre { background: #f6f8fa; border: 1px solid #ddd; padding: 10px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; font-size: .85rem; max-height: 60vh; overflow-y: auto; }
+  #nguoiDung { font-weight: 600; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1b1b1b; color: #e8e8e8; }
+    button { background: #333; color: #eee; border-color: #666; }
+    pre, textarea { background: #262626; color: #e8e8e8; border-color: #555; }
+    .canhbao { background: #3a2f1c; border-color: #8a6a2f; }
+    .loi { background: #4a2323; border-color: #8a3f3f; }
+  }
+</style>
+</head>
+<body>
+<h1>Thử máy chủ điểm danh (Giai đoạn 2)</h1>
+<p class="canhbao">Đây là trang kiểm thử, không phải giao diện chính thức và không chứa dữ liệu nào. Sẽ bị xóa khi làm xong Giai đoạn 3.</p>
+<div id="canhBaoTrinhDuyet"></div>
+
+<div id="nutDangNhap"></div>
+<p id="nguoiDung">Chưa đăng nhập.</p>
+
+<h3>1. Lấy dữ liệu lớp</h3>
+<button id="btnDangNhap" disabled>Lấy dữ liệu lớp (dangNhap)</button>
+
+<h3>2. Gửi điểm danh thử</h3>
+<p style="font-size:.9rem">Khung dưới được điền sẵn sau khi bước 1 thành công. Có thể sửa. Để "maYeuCau" là <code>TU_DONG</code> thì mỗi lần bấm là một mã mới. Muốn thử bấm đúp, thay bằng một chuỗi cố định (ít nhất 8 ký tự) rồi bấm Gửi hai lần.</p>
+<textarea id="khungGui" rows="14" spellcheck="false"></textarea>
+<button id="btnGui" disabled>Gửi điểm danh thử (guiDiemDanh)</button>
+
+<h3>3. Xem lại các lần điểm danh</h3>
+<button id="btnXemLai" disabled>Xem lại (xemLai)</button>
+
+<h3>Kết quả máy chủ trả về</h3>
+<pre id="ketQua">(chưa có)</pre>
+
+<script>
+// >>> BẠN CẦN SỬA 2 DÒNG DƯỚI
+const CLIENT_ID = '92463515262-l6eltbnl7sk9s11b7htpaqa241pjvpge.apps.googleusercontent.com';
+const URL_MAY_CHU = 'https://script.google.com/macros/s/AKfycbxHOfWcTuxmktzTfTEvujNvQV6qBt01bD6KwnRJTph8N2mKSeJCr-YUSnqKXXpnoqNlUA/exec';
+
+let maDangNhap = null;
+
+function $(id) { return document.getElementById(id); }
+function hienKetQua(noiDung) { $('ketQua').textContent = noiDung; }
+
+// Cảnh báo nếu mở bằng trình duyệt nhúng của ứng dụng (Zalo, Facebook...)
+(function () {
+  if (/Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger/i.test(navigator.userAgent)) {
+    $('canhBaoTrinhDuyet').innerHTML = '<div class="loi">Bạn đang mở trang trong trình duyệt của ứng dụng (Zalo, Facebook...). Đăng nhập Google có thể bị chặn. Hãy bấm "Mở bằng trình duyệt" (Chrome hoặc Safari).</div>';
+  }
+})();
+
+// Đọc phần thông tin trong mã đăng nhập (chỉ để hiển thị email, KHÔNG dùng để xác thực)
+function doiMaThanhThongTin(ma) {
+  try {
+    const phan = ma.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(atob(phan).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(json);
+  } catch (loi) { return null; }
+}
+
+function khoiTaoGoogle() {
+  if (CLIENT_ID.indexOf('DAN_CLIENT_ID') === 0 || URL_MAY_CHU.indexOf('DAN_DUONG_LINK') === 0) {
+    hienKetQua('CHƯA ĐIỀN: hãy sửa 2 dòng CLIENT_ID và URL_MAY_CHU ở đầu phần <script> của file này.');
+    return;
+  }
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: khiDangNhapGoogle });
+  google.accounts.id.renderButton($('nutDangNhap'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'vi' });
+}
+
+function khiDangNhapGoogle(phanHoi) {
+  maDangNhap = phanHoi.credential;
+  const tt = doiMaThanhThongTin(maDangNhap);
+  $('nguoiDung').textContent = 'Đã đăng nhập Google: ' + (tt && tt.email ? tt.email : '(không đọc được email)');
+  $('btnDangNhap').disabled = false;
+  $('btnGui').disabled = false;
+  $('btnXemLai').disabled = false;
+  goiDangNhap();
+}
+
+// Gửi yêu cầu lên máy chủ. KHÔNG đặt Content-Type (đặt application/json sẽ gây lỗi CORS).
+async function goiMayChu(doiTuong) {
+  const phanHoi = await fetch(URL_MAY_CHU, {
+    method: 'POST',
+    body: JSON.stringify(Object.assign({ idToken: maDangNhap }, doiTuong))
+  });
+  return await phanHoi.json();
+}
+
+async function chayYeuCau(doiTuong, saukhiXong) {
+  hienKetQua('Đang gửi yêu cầu...');
+  try {
+    const kq = await goiMayChu(doiTuong);
+    hienKetQua(JSON.stringify(kq, null, 2));
+    if (saukhiXong) saukhiXong(kq);
+  } catch (loi) {
+    hienKetQua('Không gọi được máy chủ: ' + loi + '\nKiểm tra: URL_MAY_CHU đúng chưa, đã Deploy chưa, "Who has access" đã là Anyone chưa.');
+  }
+}
+
+function taoMaNgauNhien() {
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (String(Date.now()) + '-' + Math.random().toString(36).slice(2));
+}
+
+// Điền sẵn khung gửi điểm danh từ dữ liệu máy chủ vừa trả về
+function dienMauGui(kq) {
+  if (!kq || !kq.ok || !kq.monHoc.length || !kq.sinhVien.length) return;
+  const tiet = kq.cauHinh.tietBuoiChieu;
+  const mau = {
+    hanhDong: 'guiDiemDanh',
+    maYeuCau: 'TU_DONG',
+    ngay: kq.homNay,
+    buoi: 'chiều',
+    ghiChu: 'GIAI DOAN 2 - THU',
+    cacMon: [{
+      maMon: kq.monHoc[0].maMon,
+      tuTiet: tiet.dau,
+      denTiet: tiet.dau + 1,
+      sinhVienVang: [{ maSV: kq.sinhVien[0].maSV }]
+    }]
+  };
+  $('khungGui').value = JSON.stringify(mau, null, 2);
+}
+
+function goiDangNhap() { chayYeuCau({ hanhDong: 'dangNhap' }, dienMauGui); }
+
+$('btnDangNhap').onclick = goiDangNhap;
+$('btnXemLai').onclick = function () { chayYeuCau({ hanhDong: 'xemLai', soNgay: 30 }); };
+$('btnGui').onclick = function () {
+  let doiTuong;
+  try { doiTuong = JSON.parse($('khungGui').value); } catch (loi) { hienKetQua('Nội dung khung gửi không phải JSON hợp lệ: ' + loi); return; }
+  if (doiTuong.maYeuCau === 'TU_DONG') doiTuong.maYeuCau = taoMaNgauNhien();
+  chayYeuCau(doiTuong);
+};
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="khoiTaoGoogle()"></script>
+</body>
+</html>
