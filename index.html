@@ -119,6 +119,7 @@
   <div id="thanhTab" role="tablist">
     <button class="nut tab-nut" id="tabDiemDanh" type="button" role="tab" aria-selected="true">Điểm danh</button>
     <button class="nut tab-nut" id="tabXemLai" type="button" role="tab" aria-selected="false">Xem lại</button>
+    <button class="nut tab-nut" id="tabSinhVien" type="button" role="tab" aria-selected="false">Sinh viên</button>
   </div>
 </header>
 
@@ -179,6 +180,7 @@
       <button class="nut" type="button" id="nutLamMoi">Làm mới</button>
       <div id="noiDungXemLai"></div>
     </div>
+    <div id="khuSinhVien" hidden></div>
   </section>
 </main>
 
@@ -992,4 +994,5 @@ $('nutLamMoi').addEventListener('click', taiXemLai);
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="khoiTaoGoogle()"></script>
 </body>
+<script src="tra-cuu.js"></script>
 </html>
